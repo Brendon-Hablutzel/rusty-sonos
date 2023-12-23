@@ -47,6 +47,9 @@ impl std::error::Error for XMLError {
     }
 }
 
+/// Represents an error involving a UDP socket
+pub type UDPError = std::io::Error;
+
 /// Errors that may be returned from speaker methods
 #[derive(Debug)]
 pub enum SpeakerError {

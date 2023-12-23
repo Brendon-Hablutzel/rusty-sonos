@@ -8,7 +8,7 @@ use std::{
 use reqwest::StatusCode;
 
 use crate::{
-    errors::{SonosError, SpeakerError},
+    errors::{SonosError, SpeakerError, UDPError},
     speaker::BasicSpeakerInfo,
     xml::{get_error_code, parse_description_xml},
 };
@@ -48,9 +48,6 @@ pub async fn get_speaker_info(ip_addr: Ipv4Addr) -> Result<BasicSpeakerInfo, Spe
         )))
     }
 }
-
-/// Represents an error involving a UDP socket
-pub type UDPError = std::io::Error;
 
 /// Returns devices discovered on the current network within a given amount of time
 /// * `search_secs` - the number of seconds for which the function will accept responses from speakers (the function will return in about this many seconds)
