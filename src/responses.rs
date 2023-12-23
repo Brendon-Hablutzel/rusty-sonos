@@ -37,7 +37,7 @@ impl PlaybackState {
             "PLAYING" => Ok(Self::Playing),
             "PAUSED_PLAYBACK" => Ok(Self::Paused),
             "TRANSITIONING" => Ok(Self::Transitioning),
-            _ => Err("Invalid state".to_owned()),
+            _ => Err(String::from("Invalid playback state")),
         }
     }
 }

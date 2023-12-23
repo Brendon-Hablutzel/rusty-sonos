@@ -20,8 +20,13 @@
 //! ```
 
 pub mod discovery;
-mod parsing;
+pub mod errors;
 pub mod responses;
 mod services;
 pub mod speaker;
-mod utils;
+mod xml;
+
+// LOWERCASE ALL ERRORS
+// SEE IF 'kind's CAN BE MERGED INTO STRUCTS
+// IMPLEMENT DISPLAY AND ERROR FOR ALL ERRORS
+// DOCUMENT ERRORS

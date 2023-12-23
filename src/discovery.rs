@@ -1,14 +1,16 @@
 //! Resources for learning about speakers on the current network
 
 use std::{
-    net::{Ipv4Addr, UdpSocket},
-    str::FromStr,
+    net::{IpAddr, Ipv4Addr, UdpSocket},
     time::{Duration, Instant},
 };
 
+use reqwest::StatusCode;
+
 use crate::{
-    parsing::{get_tag_by_name, get_text},
-    utils::get_res_text,
+    errors::{SonosError, SpeakerError},
+    speaker::BasicSpeakerInfo,
+    xml::{get_error_code, parse_description_xml},
 };
 
 const DISCOVERY_REQUEST_BODY: &str = "M-SEARCH * HTTP/1.1
@@ -17,59 +19,38 @@ MAN: ssdp:discover
 MX: 1
 ST: urn:schemas-upnp-org:device:ZonePlayer:1";
 
-/// Represents typical speaker data
-#[derive(Debug)]
-pub struct BasicSpeakerInfo {
-    /// The IP address of the speaker
-    pub ip_addr: Ipv4Addr,
-    /// Readable speaker name, usually in the form `IP - Model`
-    pub friendly_name: String,
-    /// The name of the room containing the speaker
-    pub room_name: String,
-}
-
-impl PartialEq for BasicSpeakerInfo {
-    fn eq(&self, other: &Self) -> bool {
-        self.ip_addr == other.ip_addr
-    }
-
-    fn ne(&self, other: &Self) -> bool {
-        !self.eq(other)
-    }
-}
+const DESCRIPTION_ENDPOINT: &str = "/xml/device_description.xml";
 
 /// Returns basic information about a speaker, if one is found at the given IP address
-///
 /// * `ip_addr` - the IP of the speaker to query for information
-pub async fn get_speaker_info(ip_addr: &str) -> Result<BasicSpeakerInfo, String> {
+pub async fn get_speaker_info(ip_addr: Ipv4Addr) -> Result<BasicSpeakerInfo, SpeakerError> {
     let url = format!(
-        "http://{}:1400/xml/device_description.xml",
+        "http://{}:1400{}",
+        DESCRIPTION_ENDPOINT,
         ip_addr.to_string()
     );
 
-    let res = reqwest::get(&url).await.map_err(|err| err.to_string())?;
+    let response = reqwest::get(&url).await?;
 
-    let xml_response = get_res_text(res).await?;
+    let status = response.status();
+    let xml_response = response.text().await?;
 
-    let parsed_xml = roxmltree::Document::parse(&xml_response).map_err(|err| err.to_string())?;
+    if let StatusCode::OK = status {
+        let speaker_info = parse_description_xml(xml_response, ip_addr)?;
 
-    let friendly_name = get_text(
-        get_tag_by_name(&parsed_xml, "friendlyName")?,
-        "No friendly name found",
-    )?;
+        Ok(speaker_info)
+    } else {
+        let error_code = get_error_code(xml_response)?;
 
-    let room_name = get_text(
-        get_tag_by_name(&parsed_xml, "roomName")?,
-        "No room name found",
-    )?;
-
-    Ok(BasicSpeakerInfo {
-        ip_addr: Ipv4Addr::from_str(ip_addr)
-            .expect("If a speaker exists, then its IP address should be valid"),
-        friendly_name,
-        room_name,
-    })
+        Err(SpeakerError::from(SonosError::from_err_code(
+            &error_code,
+            &format!("HTTP status code: {}", status),
+        )))
+    }
 }
+
+/// Represents an error involving a UDP socket
+pub type UDPError = std::io::Error;
 
 /// Returns devices discovered on the current network within a given amount of time
 /// * `search_secs` - the number of seconds for which the function will accept responses from speakers (the function will return in about this many seconds)
@@ -77,25 +58,16 @@ pub async fn get_speaker_info(ip_addr: &str) -> Result<BasicSpeakerInfo, String>
 pub async fn discover_devices(
     search_secs: u64,
     read_timeout: u64,
-) -> Result<Vec<BasicSpeakerInfo>, String> {
-    let socket: UdpSocket =
-        UdpSocket::bind("0.0.0.0:0").expect("Should be able to create a UDP socket");
+) -> Result<Vec<BasicSpeakerInfo>, UDPError> {
+    let socket: UdpSocket = UdpSocket::bind("0.0.0.0:0")?;
 
-    socket
-        .set_broadcast(true)
-        .expect("Should be able to enable broadcast");
+    socket.set_broadcast(true)?;
 
-    socket
-        .set_read_timeout(Some(Duration::from_secs(read_timeout)))
-        .expect("Should be able to set socket read timeout");
+    socket.set_read_timeout(Some(Duration::from_secs(read_timeout)))?;
 
-    socket
-        .send_to(DISCOVERY_REQUEST_BODY.as_bytes(), "239.255.255.250:1900")
-        .map_err(|err| err.to_string())?;
+    socket.send_to(DISCOVERY_REQUEST_BODY.as_bytes(), "239.255.255.250:1900")?;
 
-    socket
-        .send_to(DISCOVERY_REQUEST_BODY.as_bytes(), "255.255.255.255:1900")
-        .map_err(|err| err.to_string())?;
+    socket.send_to(DISCOVERY_REQUEST_BODY.as_bytes(), "255.255.255.255:1900")?;
 
     let start_time = Instant::now();
 
@@ -110,11 +82,13 @@ pub async fn discover_devices(
         }
 
         if let Ok((_, addr)) = socket.recv_from(&mut buf) {
-            let addr = addr.to_string().replace(&format!(":{}", addr.port()), "");
+            let ip_addr = addr.ip();
 
-            if let Ok(info) = get_speaker_info(&addr).await {
-                if !discovered_speakers.contains(&info) {
-                    discovered_speakers.push(info);
+            if let IpAddr::V4(ip_addr) = ip_addr {
+                if let Ok(info) = get_speaker_info(ip_addr).await {
+                    if !discovered_speakers.contains(&info) {
+                        discovered_speakers.push(info);
+                    }
                 }
             }
         }
