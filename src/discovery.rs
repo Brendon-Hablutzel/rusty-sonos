@@ -50,17 +50,17 @@ pub async fn get_speaker_info(ip_addr: Ipv4Addr) -> Result<BasicSpeakerInfo, Spe
 }
 
 /// Returns devices discovered on the current network within a given amount of time
-/// * `search_secs` - the number of seconds for which the function will accept responses from speakers (the function will return in about this many seconds)
+/// * `search_timeout` - how long the function will accept responses from speakers (the function will return in about this many seconds)
 /// * `read_timeout` - the maximum amount of time for which the function will try and read data from a given response
 pub async fn discover_devices(
-    search_secs: u64,
-    read_timeout: u64,
+    search_timeout: Duration,
+    read_timeout: Duration,
 ) -> Result<Vec<BasicSpeakerInfo>, UDPError> {
     let socket: UdpSocket = UdpSocket::bind("0.0.0.0:0")?;
 
     socket.set_broadcast(true)?;
 
-    socket.set_read_timeout(Some(Duration::from_secs(read_timeout)))?;
+    socket.set_read_timeout(Some(read_timeout))?;
 
     socket.send_to(DISCOVERY_REQUEST_BODY.as_bytes(), "239.255.255.250:1900")?;
 
@@ -74,7 +74,7 @@ pub async fn discover_devices(
     let mut discovered_speakers = Vec::new();
 
     loop {
-        if start_time.elapsed().as_secs() > search_secs {
+        if start_time.elapsed() > search_timeout {
             break;
         }
 

@@ -13,7 +13,7 @@
 //! Discovering speakers on the current network:
 //! ```rust
 //! // search for 2 seconds, with a read timeout of 5 seconds
-//! let devices = discover_devices(2, 5).await.unwrap();
+//! let devices = discover_devices(Duration::from_secs(2), Duration::from_secs(5)).await.unwrap();
 //!
 //! for device in devices {
 //!    println!("{}, {}", device.friendly_name, device.room_name)

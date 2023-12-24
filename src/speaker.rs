@@ -17,14 +17,32 @@ use std::net::Ipv4Addr;
 /// Represents typical speaker data
 #[derive(Debug)]
 pub struct BasicSpeakerInfo {
+    pub(crate) ip_addr: Ipv4Addr,
+    pub(crate) friendly_name: String,
+    pub(crate) room_name: String,
+    pub(crate) uuid: String,
+}
+
+impl BasicSpeakerInfo {
     /// The IP address of the speaker
-    pub ip_addr: Ipv4Addr,
+    pub fn ip_addr(&self) -> Ipv4Addr {
+        self.ip_addr
+    }
+
     /// Readable speaker name, usually in the form `IP - Model`
-    pub friendly_name: String,
+    pub fn friendly_name(&self) -> &str {
+        &self.friendly_name
+    }
+
     /// The name of the room containing the speaker
-    pub room_name: String,
+    pub fn room_name(&self) -> &str {
+        &self.room_name
+    }
+
     /// The unique ID of the speaker
-    pub uuid: String,
+    pub fn uuid(&self) -> &str {
+        &self.uuid
+    }
 }
 
 impl PartialEq for BasicSpeakerInfo {
@@ -46,9 +64,6 @@ pub struct Speaker {
 }
 
 impl Speaker {
-    // can return error for:
-    // - invalid ip
-    // - HTTP error while sending
     /// Creates a new speaker object, if a speaker is found at the specified IP address
     pub async fn new(ip_addr: Ipv4Addr) -> Result<Self, SpeakerError> {
         let speaker = get_speaker_info(ip_addr).await?;
