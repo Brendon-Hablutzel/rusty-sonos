@@ -26,8 +26,8 @@ const DESCRIPTION_ENDPOINT: &str = "/xml/device_description.xml";
 pub async fn get_speaker_info(ip_addr: Ipv4Addr) -> Result<BasicSpeakerInfo, SpeakerError> {
     let url = format!(
         "http://{}:1400{}",
-        DESCRIPTION_ENDPOINT,
-        ip_addr.to_string()
+        ip_addr.to_string(),
+        DESCRIPTION_ENDPOINT
     );
 
     let response = reqwest::get(&url).await?;
