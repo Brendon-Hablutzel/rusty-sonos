@@ -33,7 +33,7 @@ pub(crate) fn get_tag_by_name_node<'a>(
     Ok(tag)
 }
 
-pub(crate) fn get_text<'a>(node: roxmltree::Node<'a, '_>) -> Result<String, XMLError> {
+pub(crate) fn get_text(node: roxmltree::Node<'_, '_>) -> Result<String, XMLError> {
     node.text()
         .ok_or(XMLError::ElementNotFound(
             node.tag_name().name().to_string(),

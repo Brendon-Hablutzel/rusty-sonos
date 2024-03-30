@@ -24,11 +24,7 @@ const DESCRIPTION_ENDPOINT: &str = "/xml/device_description.xml";
 /// Returns basic information about a speaker, if one is found at the given IP address
 /// * `ip_addr` - the IP of the speaker to query for information
 pub async fn get_speaker_info(ip_addr: Ipv4Addr) -> Result<BasicSpeakerInfo, SpeakerError> {
-    let url = format!(
-        "http://{}:1400{}",
-        ip_addr.to_string(),
-        DESCRIPTION_ENDPOINT
-    );
+    let url = format!("http://{}:1400{}", ip_addr, DESCRIPTION_ENDPOINT);
 
     let response = reqwest::get(&url).await?;
 

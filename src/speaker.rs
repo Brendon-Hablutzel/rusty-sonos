@@ -49,10 +49,6 @@ impl PartialEq for BasicSpeakerInfo {
     fn eq(&self, other: &Self) -> bool {
         self.ip_addr == other.ip_addr
     }
-
-    fn ne(&self, other: &Self) -> bool {
-        !self.eq(other)
-    }
 }
 
 /// A sonos speaker
@@ -101,7 +97,7 @@ impl Speaker {
     ) -> Result<String, SpeakerError> {
         let url = format!("http://{}:1400{}", self.ip_addr, service.get_endpoint());
 
-        let xml_body = generate_xml(&action_name, &service, arguments)?;
+        let xml_body = generate_xml(action_name, &service, arguments)?;
 
         let response = self
             .client
