@@ -1,6 +1,6 @@
 [package]
 name = "rusty-sonos"
-version = "0.2.4"
+version = "0.2.5"
 edition = "2021"
 license = "MIT"
 description = "A library for communicating with and discovering Sonos speakers"
