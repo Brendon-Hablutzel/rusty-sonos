@@ -128,8 +128,9 @@ pub(crate) fn parse_current_track_xml(xml: String) -> Result<CurrentTrack, XMLEr
         .text()
         .map(str::to_string);
 
-    let artist = get_tag_by_name(&parsed_xml, "creator")?
-        .text()
+    let artist = get_tag_by_name(&parsed_xml, "creator")
+        .ok()
+        .and_then(|node| node.text())
         .map(str::to_string);
 
     let position = get_text(get_tag_by_name(&parsed_xml, "RelTime")?)?;
